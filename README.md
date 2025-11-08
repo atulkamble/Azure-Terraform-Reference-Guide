@@ -436,3 +436,195 @@ Get-ChildItem -Force
 ```
 
 ---
+Excellent and practical question ✅ — this is something every Terraform practitioner should master while working with **Azure CLI + Terraform (AzureRM provider)**.
+
+Let’s go step-by-step 👇
+
+---
+
+# 🌩️ **How to Get Azure Parameters & References from CLI While Practicing Terraform**
+
+---
+
+## 🧩 1️⃣ **Understand What “Parameters” Means in Terraform for Azure**
+
+When writing Terraform code for Azure, you often need:
+
+* **Subscription ID**
+* **Resource Group name**
+* **Location (Region)**
+* **VNet / Subnet / NSG / Storage account names**
+* **SKU / Tier / Size / ID references**
+* **Principal IDs / Object IDs for roles**
+
+👉 All of these can be fetched directly using `az` commands.
+
+---
+
+## 🧰 2️⃣ **General Azure CLI Commands to Get Terraform Inputs**
+
+| Resource Type             | Azure CLI Command                                                               | Terraform Equivalent Variable    |
+| ------------------------- | ------------------------------------------------------------------------------- | -------------------------------- |
+| Subscription ID           | `az account show --query id -o tsv`                                             | `subscription_id`                |
+| Tenant ID                 | `az account show --query tenantId -o tsv`                                       | `tenant_id`                      |
+| Resource Group list       | `az group list -o table`                                                        | used in `resource_group_name`    |
+| Regions list              | `az account list-locations -o table`                                            | used in `location`               |
+| VNet list                 | `az network vnet list -o table`                                                 | `vnet_name`                      |
+| Subnet list               | `az network vnet subnet list --vnet-name myvnet --resource-group myrg -o table` | `subnet_id`                      |
+| Storage accounts          | `az storage account list -o table`                                              | `storage_account_name`           |
+| VM sizes per region       | `az vm list-sizes --location eastus -o table`                                   | used in `vm_size`                |
+| Available images          | `az vm image list --publisher Canonical --offer UbuntuServer --all -o table`    | used in `source_image_reference` |
+| Service principal details | `az ad sp list --display-name mysp -o table`                                    | for `client_id`, `object_id`     |
+
+---
+
+## ⚙️ 3️⃣ **Example: Use Azure CLI to Populate Terraform Variables**
+
+### Example 1 — Get Subscription and Tenant IDs
+
+```bash
+export ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+export ARM_TENANT_ID=$(az account show --query tenantId -o tsv)
+```
+
+These environment variables are **automatically picked by Terraform** provider block if not hardcoded.
+
+---
+
+### Example 2 — Get Region and Resource Group Name
+
+```bash
+az account list-locations -o table
+az group list -o table
+```
+
+Then use:
+
+```hcl
+location            = "eastus"
+resource_group_name = "demo-rg"
+```
+
+---
+
+### Example 3 — Get IDs for Existing Resources
+
+You can fetch **resource IDs** directly for use in references:
+
+```bash
+az network vnet show -g demo-rg -n demo-vnet --query id -o tsv
+az network vnet subnet show -g demo-rg --vnet-name demo-vnet -n default --query id -o tsv
+```
+
+Use inside Terraform:
+
+```hcl
+subnet_id = "paste-output-id-here"
+```
+
+---
+
+## 💡 4️⃣ **Bonus: Get Terraform Reference Codes / Schema**
+
+To find out all possible Terraform attributes for any Azure resource:
+
+### Option 1 — Use Terraform CLI
+
+```bash
+terraform providers schema -json | jq '.provider_schemas."registry.terraform.io/hashicorp/azurerm"'
+```
+
+### Option 2 — Open Docs Quickly from CLI
+
+```bash
+terraform docs show -provider azurerm
+```
+
+Or visit:
+🔗 [https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
+
+---
+
+## ⚡ 5️⃣ **Get Azure IDs and References via Data Sources**
+
+If a resource already exists, use Terraform **data blocks** to import its properties dynamically instead of using CLI:
+
+```hcl
+data "azurerm_resource_group" "example" {
+  name = "demo-rg"
+}
+
+data "azurerm_virtual_network" "example" {
+  name                = "demo-vnet"
+  resource_group_name = data.azurerm_resource_group.example.name
+}
+
+output "vnet_id" {
+  value = data.azurerm_virtual_network.example.id
+}
+```
+
+Then run:
+
+```bash
+terraform apply
+```
+
+✅ Terraform automatically queries Azure API using provider credentials (same as CLI).
+
+---
+
+## 🧠 6️⃣ **Pro Technique — Don’t Memorize Codes**
+
+Use these practical tricks:
+
+* `az <service> -h` → shows all CLI parameters
+  Example:
+
+  ```bash
+  az network vnet create -h
+  ```
+* Copy `--name`, `--resource-group`, etc., to create Terraform equivalent fields.
+* Use:
+
+  ```bash
+  az resource show --ids <resource_id> --query '{name:name, id:id, type:type}'
+  ```
+
+  to get all references for Terraform import or existing infra.
+
+---
+
+## 🪄 7️⃣ **Terraform Import + CLI Combination**
+
+When you have an existing Azure resource:
+
+```bash
+az resource show -g demo-rg -n demo-vnet --resource-type Microsoft.Network/virtualNetworks
+```
+
+Then:
+
+```bash
+terraform import azurerm_virtual_network.demo "/subscriptions/xxx/resourceGroups/demo-rg/providers/Microsoft.Network/virtualNetworks/demo-vnet"
+```
+
+---
+
+## 🧭 Summary Cheat Sheet
+
+| Type             | Command                                                                 |
+| ---------------- | ----------------------------------------------------------------------- |
+| All regions      | `az account list-locations -o table`                                    |
+| Resource Groups  | `az group list -o table`                                                |
+| VMs              | `az vm list -o table`                                                   |
+| Images           | `az vm image list --publisher Canonical --offer UbuntuServer -o table`  |
+| Sizes            | `az vm list-sizes --location eastus -o table`                           |
+| Networks         | `az network vnet list -o table`                                         |
+| Subnets          | `az network vnet subnet list -g demo-rg --vnet-name demo-vnet -o table` |
+| Disks            | `az disk list -o table`                                                 |
+| Storage Accounts | `az storage account list -o table`                                      |
+
+---
+
+
