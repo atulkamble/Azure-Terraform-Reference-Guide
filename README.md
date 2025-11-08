@@ -1,4 +1,4 @@
-👏 a **complete Azure + Terraform Master Reference**, covering everything from **commands and services to interview and practical content**, plus smart **CLI discovery techniques** (so you don’t have to memorize syntax).
+👏 a **Complete Azure + Terraform Master Reference**, covering everything from **commands and services to interview and practical content**, plus smart **CLI discovery techniques** (so you don’t have to memorize syntax).
 
 Here’s the full structured reference:
 
