@@ -334,3 +334,105 @@ output "rg_id" {
 ```
 
 ---
+In a Terraform project, **hidden files and folders** (those starting with `.`) are created automatically to manage backend state, provider credentials, and module caching. Here’s what they mean 👇
+
+---
+
+## 🧩 **Terraform Hidden Files and Folders**
+
+### 1. `.terraform/` (hidden directory)
+
+This is created when you run `terraform init`.
+It stores **plugins, modules, and provider configurations**.
+
+**Contents inside `.terraform/`:**
+
+| Folder                            | Description                                                                                               |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `.terraform/providers/`           | Provider plugins downloaded from the Terraform Registry (e.g., `registry.terraform.io/hashicorp/azurerm`) |
+| `.terraform/modules/`             | Cached Terraform modules used in your project                                                             |
+| `.terraform/environment`          | Tracks the selected workspace/environment                                                                 |
+| `.terraform.lock.hcl` (see below) | Dependency lock file for provider versions                                                                |
+
+---
+
+### 2. `.terraform.lock.hcl`
+
+This is a **lock file** created by Terraform to ensure **provider version consistency**.
+
+**Purpose:**
+
+* Prevents unexpected version upgrades
+* Ensures the same provider versions are used across all environments
+
+**Example snippet:**
+
+```hcl
+provider "registry.terraform.io/hashicorp/azurerm" {
+  version = "3.105.0"
+  hashes = [
+    "h1:abc123xyz...",
+    "zh:abcd..."
+  ]
+}
+```
+
+---
+
+### 3. `.terraform.tfstate` (and `.backup`)
+
+While not hidden, it’s **critical** for Terraform to track real infrastructure.
+
+| File                       | Purpose                                             |
+| -------------------------- | --------------------------------------------------- |
+| `terraform.tfstate`        | Stores the current state of your deployed resources |
+| `terraform.tfstate.backup` | Automatic backup of the previous state file         |
+
+👉 Best practice:
+Never manually edit or commit these files to Git.
+Add them to `.gitignore` (see below).
+
+---
+
+### 4. `.gitignore` (manual file)
+
+A hidden file you create to exclude sensitive Terraform files from version control.
+
+**Recommended `.gitignore` for Terraform:**
+
+```
+# Local .terraform directories
+.terraform/
+
+# State files
+*.tfstate
+*.tfstate.*
+
+# Crash log
+crash.log
+
+# Sensitive variable files
+*.tfvars
+*.tfvars.json
+
+# Lock file
+.terraform.lock.hcl
+```
+
+---
+
+### 🧠 Quick Tip — View Hidden Files
+
+**Linux/macOS:**
+
+```bash
+ls -a
+```
+
+**Windows PowerShell:**
+
+```powershell
+Get-ChildItem -Force
+```
+
+---
